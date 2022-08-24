@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
+import { useSelector, useDispatch } from 'react-redux';
+import contactsActions from 'redux/contacts/contactActions';
+import { Notify } from 'notiflix';
 import s from './ContactForm.module.css';
+import { getContacts } from 'redux/contacts/contactSelectors';
 
-export default function ContactForm({ onAddContact }) {
+export default function ContactForm() {
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
+  const contacts = useSelector(getContacts);
+  const dispatch = useDispatch();
+  const onAddContact = (name, number) =>
+    dispatch(contactsActions.addContact(name, number));
 
   const handleChange = ({ target: { name, value } }) => {
     switch (name) {
@@ -19,15 +26,28 @@ export default function ContactForm({ onAddContact }) {
     }
   };
 
+  const handleSubmit = e => {
+    e.preventDefault();
+    const isNameAlreadyAdded = contacts.find(
+      c => c.name.toLowerCase() === name.toLowerCase()
+    );
+    const isNumberAlreadyAdded = contacts.find(c => c.number === number);
+    if (isNameAlreadyAdded || isNumberAlreadyAdded) {
+      isNameAlreadyAdded && Notify.failure(`${name} is already in contacts.`);
+      isNumberAlreadyAdded &&
+        Notify.failure(
+          `${number} is already in contacts as ${isNumberAlreadyAdded.name}.`
+        );
+    } else {
+      Notify.success(`${name} is added to contacts.`);
+      onAddContact(name, number);
+    }
+    reset();
+  };
+
   const reset = () => {
     setName('');
     setNumber('');
-  };
-
-  const handleSubmit = e => {
-    e.preventDefault();
-    onAddContact(name, number);
-    reset();
   };
 
   return (
@@ -64,7 +84,3 @@ export default function ContactForm({ onAddContact }) {
     </form>
   );
 }
-
-ContactForm.propTypes = {
-  onAddContact: PropTypes.func,
-};
